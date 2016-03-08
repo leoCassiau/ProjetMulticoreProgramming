@@ -2,10 +2,10 @@
   Branch and bound algorithm to find the minimum of continuous binary 
   functions using interval arithmetic.
 
-  Sequential version
+  Parallel version
 
-  Author: Frederic Goualard <Frederic.Goualard@univ-nantes.fr>
-  v. 1.0, 2013-02-15
+  Author: Léo Cassiau et Ugo Mahey
+  v. 1.0, 2016-03-08
 */
 
 #include <iostream>
@@ -15,9 +15,13 @@
 #include "interval.h"
 #include "functions.h"
 #include "minimizer.h"
+#include <boost/format.hpp>
+#include <mpi.h>
 
 using namespace std;
 
+// Variables utilisées par MPI
+int rang, nbprocs;
 
 // Split a 2D box into four subboxes by splitting each dimension
 // into two equal subparts
@@ -68,15 +72,24 @@ void minimize(itvfun f,  // Function to minimize
   interval xl, xr, yl, yr;
   split_box(x,y,xl,xr,yl,yr);
 
-  minimize(f,xl,yl,threshold,min_ub,ml);
-  minimize(f,xl,yr,threshold,min_ub,ml);
-  minimize(f,xr,yl,threshold,min_ub,ml);
-  minimize(f,xr,yr,threshold,min_ub,ml);
+	if( rang == 1) {
+	  minimize(f,xl,yl,threshold,min_ub,ml);
+	  minimize(f,xl,yr,threshold,min_ub,ml);
+	} else {
+  	minimize(f,xr,yl,threshold,min_ub,ml);
+  	minimize(f,xr,yr,threshold,min_ub,ml);
+	}
 }
 
 
-int main(void)
-{
+int main(int argc, char* argv[]) {
+
+  // Initialisation de MPI
+	MPI_Init(&argc, &argv);
+	MPI_Comm_rank(MPI_COMM_WORLD, &rang);
+	MPI_Comm_size(MPI_COMM_WORLD, &nbprocs);
+
+	// Partie du prof
   cout.precision(16);
   // By default, the currently known upper bound for the minimizer is +oo
   double min_ub = numeric_limits<double>::infinity();
