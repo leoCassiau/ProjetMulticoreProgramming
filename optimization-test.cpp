@@ -92,6 +92,14 @@ void minimize(itvfun f,  // Function to minimize
   }
 }
 
+void MPI_Send_Interval(itvfun f, const interval & x, const interval & y, double threshold, double min_ub) {
+//TODO
+}
+
+void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
+//TODO
+}
+
 // Branch-and-bound minimization algorithm
 void minimize_mpi(itvfun f,  // Function to minimize
 	      const interval& x, // Current bounds for 1st dimension
@@ -160,14 +168,6 @@ void minimize_mpi(itvfun f,  // Function to minimize
 	}
 }
 
-void MPI_Send_Interval(itvfun f, const interval & x, const interval & y, double threshold, double min_ub) {
-//TODO
-}
-
-void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
-//TODO
-}
-
 int main(int argc, char *argv[])
 {
   cout.precision(16);
@@ -221,19 +221,24 @@ int main(int argc, char *argv[])
 		precision = 0.007;
 
   	minimize_mpi(fun.f,fun.x,fun.y,precision,min_ub,minimums);
-		//TODO REDUCE
-		// Displaying all potential minimizers
-		/*copy(minimums.begin(),minimums.end(),
-		     ostream_iterator<minimizer>(cout,"\n"));   */ 
-		cout << "Number of minimizers: " << minimums.size() << endl;
-		cout << "Upper bound for minimum: " << min_ub << endl;
 	} else {
 		itvfun f;
 		interval x, y;
 
-		MPI_Recv_Interval(&f, &x, &y, &precision, &min_ub);
+		MPI_Recv_Interval(f, x, y, precision, min_ub);
 		minimize(f, x, y, precision, min_ub,minimums);
-		MPI_Send(/* le nouveau min_ub */);
+	}
+
+	// Combining min_ub
+	double total_min_ub;
+	MPI_Reduce(&total_min_ub , &min_ub , 1, MPI_DOUBLE, MPI_MIN, 0,  MPI_COMM_WORLD);
+
+	if(rang == 0) {
+		// Displaying all potential minimizers
+		/*copy(minimums.begin(),minimums.end(),
+		     ostream_iterator<minimizer>(cout,"\n"));
+		cout << "Number of minimizers: " << minimums.size() << endl;*/
+		cout << "Upper bound for minimum: " << total_min_ub << endl;
 	}
 
 	MPI_Finalize();
