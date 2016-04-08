@@ -26,7 +26,7 @@ optimization-seq: optimization-seq.cpp $(COMMON_OBJECTS)
 	$(CXX) $(CXXFLAGS) -o $@ $< $(COMMON_OBJECTS) -lm
 
 optimization-omp: optimization-omp.cpp $(COMMON_OBJECTS)
-	$(MPICXX) $(CXXFLAGS) -o $@ $< $(COMMON_OBJECTS) -lm
+	$(CXX) $(CXXFLAGS) -o $@ $< $(COMMON_OBJECTS) -lm
 
 optimization-mpi: optimization-mpi.cpp $(COMMON_OBJECTS)
 	$(MPICXX) $(CXXFLAGS) -o $@ $< $(COMMON_OBJECTS) -lm

@@ -22,4 +22,4 @@ hostname	// Commande utile pour connaître le nom du pc.
 mpirun -H I125V2pc13,I125V2pc14 -n 2 optimization-mpi	// Execute optimization-mpi sur les différentes machines indiqués. -H : indique les noms des machines hôtes. -n : indique le nombre de machines. Ici, I125V2pc13 et I125V2pc14 sont les 2 hôtes, I125V2pc13 étant la machine de rang 0 et I125V2pc14 de rang 1.
 
 A la faculté des sciences et techniques de nantes, nous avons utilisé le mpirun de l'enseignant M. Goualard, ce qui donne la commande suivante :
-~goulard-f/local/bin/mpirun -H I125V2pc13,I125V2pc14 -n 2 optimization-mpi
+~goualard-f/local/bin/mpirun -H I125V2pc13,I125V2pc14 -n 2 optimization-mpi

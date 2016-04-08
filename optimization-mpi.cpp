@@ -14,7 +14,9 @@
 #include "interval.h"
 #include "functions.h"
 #include "minimizer.h"
-#include <omp.h>
+#if _OPENMP
+#   include <omp.h>
+#endif
 #include <mpi.h>
 #include <string.h>
 
