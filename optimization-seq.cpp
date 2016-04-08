@@ -94,7 +94,6 @@ int main(void)
   opt_fun_t fun;
   
   bool good_choice;
-
   // Asking the user for the name of the function to optimize
   do {
     good_choice = true;
@@ -106,7 +105,8 @@ int main(void)
     }
     cout << endl;
     cin >> choice_fun;
-    
+   	//choice_fun = "goldstein_price";
+
     try {
       fun = functions.at(choice_fun);
     } catch (out_of_range) {
@@ -118,12 +118,12 @@ int main(void)
   // Asking for the threshold below which a box is not split further
   cout << "Precision? ";
   cin >> precision;
-  
+  //precision = 0.007;
   minimize(fun.f,fun.x,fun.y,precision,min_ub,minimums);
   
   // Displaying all potential minimizers
-  copy(minimums.begin(),minimums.end(),
-       ostream_iterator<minimizer>(cout,"\n"));    
+  /*copy(minimums.begin(),minimums.end(),
+       ostream_iterator<minimizer>(cout,"\n"));   */ 
   cout << "Number of minimizers: " << minimums.size() << endl;
   cout << "Upper bound for minimum: " << min_ub << endl;
 }
