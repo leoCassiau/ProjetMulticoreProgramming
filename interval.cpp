@@ -149,29 +149,28 @@ interval operator-(const interval& I1, const interval& I2)
 interval operator*(const interval& I1, const interval& I2)
 {
   double l,r;
-  #pragma omp parallel
-  #pragma omp sections
-  
-  {
+
   
   
-	  #pragma omp section
-	  {
+  
+  
+
+	  
 	  round_downward();
 	  //Possibilité de paralleliser les min 
 	  l = min(min(I1.left()*I2.left(),I1.left()*I2.right()),
 			 min(I1.right()*I2.left(),I1.right()*I2.right()));
-	  }
+	  
 	  //Pareil pour les max
 	  
-	  #pragma omp section
-	  {
+	
+	  
 	  round_upward();
 	  r = max(max(I1.left()*I2.left(),I1.left()*I2.right()),
 			 max(I1.right()*I2.left(),I1.right()*I2.right()));
 	  round_nearest();
-	  }
-  }
+	  
+  
   
   return interval(l,r);
   

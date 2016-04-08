@@ -17,13 +17,15 @@
 #include "minimizer.h"
 #include <omp.h>
 #include <mpi.h>
+#include <string.h>
 
 using namespace std;
 
 int cpt = 1;
 int rang, numprocs;
 double intervaleXY[4];
-
+// Name of the function to optimize
+char choice_fun[50];
 
 // Split a 2D box into four subboxes by splitting each dimension
 // into two equal subparts
@@ -92,11 +94,40 @@ void minimize(itvfun f,  // Function to minimize
   }
 }
 
-void MPI_Send_Interval(itvfun f, const interval & x, const interval & y, double threshold, double min_ub) {
+void MPI_Send_Interval(const interval & x, const interval & y, double threshold, double min_ub) {
+	char send_fun[50];
+	strcpy(send_fun,choice_fun);
+	double envoie_inter_thres_min[6] = {x.left(),x.right(),y.left(),y.right(),threshold,min_ub};
+	MPI_Send(&send_fun,50,MPI_CHAR,cpt,0,MPI_COMM_WORLD);
+	MPI_Send(&envoie_inter_thres_min,6,MPI_DOUBLE,cpt,0,MPI_COMM_WORLD);	
 //TODO
+	
 }
 
 void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
+	opt_fun_t fun;
+	char recv_fun[50];
+	double recv_inter_thres_min[6];
+
+
+	MPI_Recv(&recv_fun,50,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
+	MPI_Recv(&recv_inter_thres_min,6,MPI_DOUBLE,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+
+	x = interval(recv_inter_thres_min[0],recv_inter_thres_min[1]);
+	y = interval(recv_inter_thres_min[2],recv_inter_thres_min[3]);
+	threshold = recv_inter_thres_min[4];
+	min_ub = recv_inter_thres_min[5];
+
+	try {
+      fun = functions.at(recv_fun);
+    } catch (out_of_range) {
+      cerr << "Bad choice" << endl;
+      //good_choice = false;
+    }
+	f = fun.f;
+	
+	
 //TODO
 }
 
@@ -141,21 +172,21 @@ void minimize_mpi(itvfun f,  // Function to minimize
   split_box(x,y,xl,xr,yl,yr);
 
 	if(cpt < numprocs) {
-		MPI_Send_Interval(f, xl, yl, threshold, min_ub);
+		MPI_Send_Interval( xl, yl, threshold, min_ub);
 		++cpt;
 	} else {
 		minimize(f,xl,yl,threshold,min_ub,ml);
 	}
 	
 	if(cpt < numprocs) {
-		MPI_Send_Interval(f, xl, yr,threshold,min_ub);
+		MPI_Send_Interval( xl, yr,threshold,min_ub);
 		++cpt;
 	} else {
 		minimize(f,xl,yr,threshold,min_ub,ml);
 	}
 
 	if(cpt < numprocs) {
-		MPI_Send_Interval(f, xr, yl,threshold,min_ub);
+		MPI_Send_Interval(xr, yl,threshold,min_ub);
 		++cpt;
 	} else {
 		minimize(f,xr,yl,threshold,min_ub,ml);
@@ -167,6 +198,7 @@ void minimize_mpi(itvfun f,  // Function to minimize
 		minimize(f,xr,yr,threshold,min_ub,ml);
 	}
 }
+
 
 int main(int argc, char *argv[])
 {
@@ -187,8 +219,7 @@ int main(int argc, char *argv[])
 	MPI_Comm_size(MPI_COMM_WORLD, &numprocs);
 
 	if(rang == 0) {
-		// Name of the function to optimize
-		string choice_fun;
+		
 
 		// The information on the function chosen (pointer and initial box)
 		opt_fun_t fun;
@@ -205,7 +236,7 @@ int main(int argc, char *argv[])
 		  }
 		  cout << endl;
 		  //cin >> choice_fun;
-		 	choice_fun = "goldstein_price";
+		 	strcpy(choice_fun, "goldstein_price");
 
 		  try {
 		    fun = functions.at(choice_fun);
@@ -218,21 +249,22 @@ int main(int argc, char *argv[])
 		// Asking for the threshold below which a box is not split further
 		cout << "Precision? ";
 		//cin >> precision;
-		precision = 0.007;
+		precision = 0.0007;
 
   	minimize_mpi(fun.f,fun.x,fun.y,precision,min_ub,minimums);
 	} else {
 		itvfun f;
 		interval x, y;
-
 		MPI_Recv_Interval(f, x, y, precision, min_ub);
+
 		minimize(f, x, y, precision, min_ub,minimums);
+			
 	}
 
 	// Combining min_ub
 	double total_min_ub;
-	MPI_Reduce(&total_min_ub , &min_ub , 1, MPI_DOUBLE, MPI_MIN, 0,  MPI_COMM_WORLD);
-
+	MPI_Reduce( &min_ub,&total_min_ub , 1, MPI_DOUBLE, MPI_MIN, 0,  MPI_COMM_WORLD);
+	
 	if(rang == 0) {
 		// Displaying all potential minimizers
 		/*copy(minimums.begin(),minimums.end(),
