@@ -92,6 +92,36 @@ void minimize(itvfun f,  // Function to minimize
   }
 }
 
+void MPI_Send_Interval(string choice_fun, const interval & x, const interval & y, double threshold, double min_ub) {
+	char send_fun[50] = choice_fun;
+	double envoie_inter_thres_min[6] = {x.left(),x.right(),y.left(),y.right(),threshold,min_ub};
+	MPI_Send(&send_fun,50,MPI_CHAR,cpt,0,MPI_COMM_WORLD);
+	MPI_Send(&envoie_inter_thres_min,6,MPI_DOUBLE,cpt,0,MPI_COMM_WORLD);	
+//TODO
+	
+}
+
+void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
+	
+	char recv_fun[50];
+	double recv_inter_thres_min[6];
+	
+	try {
+      f = functions.at(recv_fun);
+    } catch (out_of_range) {
+      cerr << "Bad choice" << endl;
+      //good_choice = false;
+    }
+	
+	MPI_Recv(&recv_fun,50,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	MPI_Recv(&recv_inter_thres_min,6,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	x = interval(recv_inter_thres_min[0],recv_inter_thres_min[1]);
+	y = interval(recv_inter_thres_min[2],recv_inter_thres_min[3]);
+	
+	
+//TODO
+}
+
 // Branch-and-bound minimization algorithm
 void minimize_mpi(itvfun f,  // Function to minimize
 	      const interval& x, // Current bounds for 1st dimension
@@ -160,35 +190,6 @@ void minimize_mpi(itvfun f,  // Function to minimize
 	}
 }
 
-void MPI_Send_Interval(string choice_fun, const interval & x, const interval & y, double threshold, double min_ub) {
-	char send_fun[50] = choice_fun;
-	double envoie_inter_thres_min[6] = {x.left(),x.right(),y.left(),y.right(),threshold,min_ub};
-	MPI_Send(&send_fun,50,MPI_CHAR,cpt,0,MPI_COMM_WORLD);
-	MPI_Send(&envoie_inter_thres_min,6,MPI_DOUBLE,cpt,0,MPI_COMM_WORLD);	
-//TODO
-	
-}
-
-void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
-	
-	char recv_fun[50];
-	double recv_inter_thres_min[6];
-	
-	try {
-      f = functions.at(recv_fun);
-    } catch (out_of_range) {
-      cerr << "Bad choice" << endl;
-      //good_choice = false;
-    }
-	
-	MPI_Recv(&recv_fun,50,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-	MPI_Recv(&recv_inter_thres_min,6,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
-	x = interval(recv_inter_thres_min[0],recv_inter_thres_min[1]);
-	y = interval(recv_inter_thres_min[2],recv_inter_thres_min[3]);
-	
-	
-//TODO
-}
 
 int main(int argc, char *argv[])
 {
@@ -243,19 +244,24 @@ int main(int argc, char *argv[])
 		precision = 0.007;
 
   	minimize_mpi(fun.f,fun.x,fun.y,precision,min_ub,minimums);
-		//TODO REDUCE
-		// Displaying all potential minimizers
-		/*copy(minimums.begin(),minimums.end(),
-		     ostream_iterator<minimizer>(cout,"\n"));   */ 
-		cout << "Number of minimizers: " << minimums.size() << endl;
-		cout << "Upper bound for minimum: " << min_ub << endl;
 	} else {
 		itvfun f;
 		interval x, y;
 
-		MPI_Recv_Interval(&f, &x, &y, &precision, &min_ub);
+		MPI_Recv_Interval(f, x, y, precision, min_ub);
 		minimize(f, x, y, precision, min_ub,minimums);
-		MPI_Send(/* le nouveau min_ub */);
+	}
+
+	// Combining min_ub
+	double total_min_ub;
+	MPI_Reduce(&total_min_ub , &min_ub , 1, MPI_DOUBLE, MPI_MIN, 0,  MPI_COMM_WORLD);
+
+	if(rang == 0) {
+		// Displaying all potential minimizers
+		/*copy(minimums.begin(),minimums.end(),
+		     ostream_iterator<minimizer>(cout,"\n"));
+		cout << "Number of minimizers: " << minimums.size() << endl;*/
+		cout << "Upper bound for minimum: " << total_min_ub << endl;
 	}
 
 	MPI_Finalize();
