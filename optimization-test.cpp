@@ -160,11 +160,33 @@ void minimize_mpi(itvfun f,  // Function to minimize
 	}
 }
 
-void MPI_Send_Interval(itvfun f, const interval & x, const interval & y, double threshold, double min_ub) {
+void MPI_Send_Interval(string choice_fun, const interval & x, const interval & y, double threshold, double min_ub) {
+	char send_fun[50] = choice_fun;
+	double envoie_inter_thres_min[6] = {x.left(),x.right(),y.left(),y.right(),threshold,min_ub};
+	MPI_Send(&send_fun,50,MPI_CHAR,cpt,0,MPI_COMM_WORLD);
+	MPI_Send(&envoie_inter_thres_min,6,MPI_DOUBLE,cpt,0,MPI_COMM_WORLD);	
 //TODO
+	
 }
 
 void MPI_Recv_Interval(itvfun & f, interval & x, interval & y, double& threshold, double & min_ub)  {
+	
+	char recv_fun[50];
+	double recv_inter_thres_min[6];
+	
+	try {
+      f = functions.at(recv_fun);
+    } catch (out_of_range) {
+      cerr << "Bad choice" << endl;
+      //good_choice = false;
+    }
+	
+	MPI_Recv(&recv_fun,50,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	MPI_Recv(&recv_inter_thres_min,6,MPI_CHAR,MPI_ANY_SOURCE,0,MPI_COMM_WORLD,MPI_STATUS_IGNORE);
+	x = interval(recv_inter_thres_min[0],recv_inter_thres_min[1]);
+	y = interval(recv_inter_thres_min[2],recv_inter_thres_min[3]);
+	
+	
 //TODO
 }
 
